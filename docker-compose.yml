@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  n8n-mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: n8n-mcp-server
+    restart: unless-stopped
+    environment:
+      # Option 1: JSON configuration for multiple instances
+      - N8N_INSTANCES=${N8N_INSTANCES:-}
+
+      # Option 2: Individual instance configuration
+      # Instance 1
+      - N8N_INSTANCE_1_NAME=${N8N_INSTANCE_1_NAME:-}
+      - N8N_INSTANCE_1_URL=${N8N_INSTANCE_1_URL:-}
+      - N8N_INSTANCE_1_API_KEY=${N8N_INSTANCE_1_API_KEY:-}
+
+      # Instance 2
+      - N8N_INSTANCE_2_NAME=${N8N_INSTANCE_2_NAME:-}
+      - N8N_INSTANCE_2_URL=${N8N_INSTANCE_2_URL:-}
+      - N8N_INSTANCE_2_API_KEY=${N8N_INSTANCE_2_API_KEY:-}
+
+      # Instance 3
+      - N8N_INSTANCE_3_NAME=${N8N_INSTANCE_3_NAME:-}
+      - N8N_INSTANCE_3_URL=${N8N_INSTANCE_3_URL:-}
+      - N8N_INSTANCE_3_API_KEY=${N8N_INSTANCE_3_API_KEY:-}
+
+      # Option 3: Single instance (fallback)
+      - N8N_URL=${N8N_URL:-}
+      - N8N_API_KEY=${N8N_API_KEY:-}
+      - N8N_INSTANCE_NAME=${N8N_INSTANCE_NAME:-default}
+
+    # MCP servers use stdio, no ports needed
+    # stdin/stdout communication
+    stdin_open: true
+    tty: true
