@@ -36,5 +36,11 @@ RUN addgroup -g 1001 -S nodejs && \
 
 USER mcp
 
-# The MCP server uses stdio, no port needed
+# Expose port for SSE transport
+EXPOSE 3000
+
+# Default to SSE transport for Coolify deployment
+ENV MCP_TRANSPORT=sse
+ENV PORT=3000
+
 CMD ["node", "dist/index.js"]

@@ -8,17 +8,26 @@ Serveur MCP (Model Context Protocol) pour gérer plusieurs instances N8N depuis 
 
 | Outil | Description |
 |-------|-------------|
-| 📋 `n8n_list_instances` | Lister les instances N8N disponibles |
-| ✅ `n8n_list_workflows` | Lister les workflows |
-| 🔎 `n8n_search_workflows` | Rechercher des workflows |
-| 📄 `n8n_get_workflow` | Récupérer un workflow |
-| ➕ `n8n_create_workflow` | Créer un workflow |
-| ✏️ `n8n_update_workflow` | Mettre à jour un workflow |
-| 🗑️ `n8n_delete_workflow` | Supprimer un workflow |
-| ⚡ `n8n_toggle_workflow` | Activer/désactiver un workflow |
-| ▶️ `n8n_execute_workflow` | Exécuter un workflow |
-| 📊 `n8n_list_executions` | Lister les exécutions |
-| 📝 `n8n_get_execution` | Détails d'une exécution |
+| `n8n_list_instances` | Lister les instances N8N disponibles |
+| `n8n_list_workflows` | Lister les workflows |
+| `n8n_search_workflows` | Rechercher des workflows |
+| `n8n_get_workflow` | Récupérer un workflow |
+| `n8n_create_workflow` | Créer un workflow |
+| `n8n_update_workflow` | Mettre à jour un workflow |
+| `n8n_delete_workflow` | Supprimer un workflow |
+| `n8n_toggle_workflow` | Activer/désactiver un workflow |
+| `n8n_execute_workflow` | Exécuter un workflow |
+| `n8n_list_executions` | Lister les exécutions |
+| `n8n_get_execution` | Détails d'une exécution |
+
+## Modes de transport
+
+Le serveur supporte deux modes de transport :
+
+| Mode | Usage | Variable |
+|------|-------|----------|
+| **SSE** (défaut) | Déploiement sur Coolify/Docker | `MCP_TRANSPORT=sse` |
+| **stdio** | Usage local (Claude Desktop) | `MCP_TRANSPORT=stdio` |
 
 ## Installation
 
@@ -48,10 +57,7 @@ npm run build
 #### Option 1 : Configuration JSON (recommandé pour plusieurs instances)
 
 ```bash
-N8N_INSTANCES='[
-  {"name":"prod","url":"https://n8n.example.com","apiKey":"your-api-key"},
-  {"name":"dev","url":"https://n8n-dev.example.com","apiKey":"your-api-key"}
-]'
+N8N_INSTANCES='[{"name":"prod","url":"https://n8n.example.com","apiKey":"your-api-key"},{"name":"dev","url":"https://n8n-dev.example.com","apiKey":"your-api-key"}]'
 ```
 
 #### Option 2 : Configuration individuelle
@@ -84,7 +90,7 @@ N8N_INSTANCE_NAME=default
 
 ## Utilisation
 
-### Avec Claude Desktop
+### Avec Claude Desktop (mode stdio)
 
 Ajouter dans `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) ou `%APPDATA%\Claude\claude_desktop_config.json` (Windows) :
 
@@ -95,6 +101,7 @@ Ajouter dans `~/Library/Application Support/Claude/claude_desktop_config.json` (
       "command": "node",
       "args": ["/chemin/vers/n8n-mcp-server/dist/index.js"],
       "env": {
+        "MCP_TRANSPORT": "stdio",
         "N8N_INSTANCES": "[{\"name\":\"prod\",\"url\":\"https://n8n.example.com\",\"apiKey\":\"xxx\"}]"
       }
     }
@@ -102,43 +109,42 @@ Ajouter dans `~/Library/Application Support/Claude/claude_desktop_config.json` (
 }
 ```
 
-### Avec VSCode (Continue, Cline, etc.)
+### Avec un client MCP SSE (mode réseau)
 
-Configurer selon l'extension MCP utilisée avec les mêmes variables d'environnement.
+Une fois déployé sur Coolify, le serveur expose :
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /` | Informations sur le serveur |
+| `GET /health` | Health check |
+| `GET /sse` | Connexion SSE pour les clients MCP |
+| `POST /messages` | Envoi de messages au serveur |
+
+Configuration client MCP SSE :
+```json
+{
+  "mcpServers": {
+    "n8n": {
+      "transport": "sse",
+      "url": "https://votre-serveur.coolify.io/sse"
+    }
+  }
+}
+```
 
 ## Déploiement sur Coolify
 
-### Méthode 1 : Déploiement Docker
+### Configuration Coolify
 
 1. **Créer une nouvelle application** dans Coolify
 2. **Source** : GitHub → Sélectionner ce repository
 3. **Type de build** : Dockerfile
-4. **Variables d'environnement** : Ajouter vos instances N8N
-
-```
-N8N_INSTANCES=[{"name":"prod","url":"https://n8n.example.com","apiKey":"xxx"}]
-```
-
-### Méthode 2 : Docker Compose
-
-1. **Créer une nouvelle application** → Docker Compose
-2. Coller le contenu de `docker-compose.yml`
-3. Configurer les variables d'environnement
-
-### Configuration Coolify recommandée
-
-| Paramètre | Valeur |
-|-----------|--------|
-| Build Pack | Dockerfile |
-| Health Check | Désactivé (MCP utilise stdio) |
-| Port | Aucun (stdio) |
+4. **Port exposé** : `3000`
 
 ### Variables d'environnement Coolify
 
-Dans l'interface Coolify, ajouter :
-
 ```
-N8N_INSTANCES=[{"name":"instance1","url":"https://n8n1.example.com","apiKey":"key1"},{"name":"instance2","url":"https://n8n2.example.com","apiKey":"key2"}]
+N8N_INSTANCES=[{"name":"prod","url":"https://n8n.example.com","apiKey":"xxx"}]
 ```
 
 Ou individuellement :
@@ -149,6 +155,10 @@ N8N_INSTANCE_1_URL=https://n8n.example.com
 N8N_INSTANCE_1_API_KEY=your-api-key
 ```
 
+### Health Check
+
+Configurer le health check vers `/health` sur le port `3000`.
+
 ## Développement
 
 ```bash
@@ -158,15 +168,18 @@ npm run dev
 # Build
 npm run build
 
-# Démarrer en production
+# Démarrer en production (SSE par défaut)
 npm start
+
+# Démarrer en mode stdio
+MCP_TRANSPORT=stdio npm start
 ```
 
 ## Architecture
 
 ```
 src/
-├── index.ts        # Point d'entrée MCP Server
+├── index.ts        # Point d'entrée MCP Server (SSE + stdio)
 ├── config.ts       # Gestion de la configuration
 ├── n8n-client.ts   # Client API N8N
 ├── tools.ts        # Définitions des 11 outils MCP
